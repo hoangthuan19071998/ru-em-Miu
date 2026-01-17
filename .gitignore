@@ -1,0 +1,14 @@
+# 1. Bỏ qua thư mục thư viện (Rất quan trọng)
+node_modules/
+*/node_modules/
+
+# 2. Bỏ qua file bảo mật (CỰC KỲ QUAN TRỌNG)
+.env
+.env.local
+.DS_Store
+
+# 3. Bỏ qua các file build (file rác sau khi chạy code)
+dist/
+build/
+npm-debug.log
+yarn-error.log
