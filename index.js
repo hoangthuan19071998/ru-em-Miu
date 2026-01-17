@@ -56,7 +56,19 @@ app.post('/upload', upload.single('musicFile'), (req, res) => {
 app.get('/songs', (req, res) => {
     res.json(songs);
 });
-
+app.use((err, req, res, next) => {
+    console.error("===== 🔥 CÓ LỖI XẢY RA 🔥 =====");
+    
+    // Dòng này sẽ biến [object Object] thành văn bản đọc được
+    console.error(JSON.stringify(err, null, 2)); 
+    
+    // Nếu có message thì in riêng ra cho dễ đọc
+    if (err.message) console.error("Message:", err.message);
+    
+    console.error("===============================");
+    
+    res.status(500).json({ error: 'Lỗi server', details: err.message });
+});
 app.listen(PORT, () => {
     console.log(`Server Cloudinary đang chạy tại port ${PORT}`);
 });
