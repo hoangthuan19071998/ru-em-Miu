@@ -35,7 +35,7 @@ function App() {
 
   const fetchSongs = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/songs');
+      const res = await axios.get('https://ru-em-miu.onrender.com/songs');
       setSongs(res.data);
     } catch (error) {
       console.error("Lỗi lấy danh sách:", error);
@@ -51,7 +51,7 @@ function App() {
     formData.append('musicFile', file);
 
     try {
-      const res = await axios.post('http://localhost:5000/upload', formData, {
+      const res = await axios.post('https://ru-em-miu.onrender.com/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setSongs(prev => [...prev, res.data]);
