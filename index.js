@@ -3,9 +3,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-// 1. Import Firebase Admin
 const admin = require('firebase-admin');
 
 const app = express();
@@ -14,57 +11,79 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// 2. Kết nối Firebase (Xử lý lỗi xuống dòng \n cho Render)
+// 1. Cấu hình Firebase
 const serviceAccount = {
     projectId: process.env.FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    // Dòng dưới rất quan trọng để chạy được trên Render
+    // Xử lý xuống dòng cho Private Key
     privateKey: process.env.FIREBASE_PRIVATE_KEY
         ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
         : undefined,
 };
 
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount),
+    // Quan trọng: Khai báo Bucket Storage
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET
 });
 
-const db = admin.firestore(); // Khởi tạo Database
+const db = admin.firestore();
+const bucket = admin.storage().bucket(); // Lấy reference tới thùng chứa file
 
-// Cấu hình Cloudinary (Giữ nguyên)
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
+// 2. Cấu hình Multer (Lưu file vào RAM tạm thời)
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // Giới hạn 10MB
 });
 
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'music-app',
-        resource_type: 'auto',
-        allowed_formats: ['mp3', 'wav', 'm4a']
-    }
-});
-const upload = multer({ storage: storage });
+// --- API ---
 
-// --- CÁC API ĐÃ SỬA ĐỔI ---
-
-// API 1: Upload nhạc (Lưu file lên Cloudinary -> Lưu info vào Firestore)
+// API Upload: Node.js nhận file -> Gửi sang Firebase Storage -> Lấy Link
 app.post('/upload', upload.single('musicFile'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).send('Vui lòng chọn file');
 
-        const newSong = {
-            name: req.file.originalname,
-            url: req.file.path,
-            createdAt: new Date().toISOString() // Lưu thời gian tạo
-        };
+        // Tạo tên file duy nhất để tránh trùng
+        const fileName = `${Date.now()}-${req.file.originalname}`;
+        const fileUpload = bucket.file(fileName);
 
-        // Lưu vào Firestore (Collection tên là 'songs')
-        const docRef = await db.collection('songs').add(newSong);
+        // Tạo luồng ghi file (Stream) lên Firebase Storage
+        const blobStream = fileUpload.createWriteStream({
+            metadata: {
+                contentType: req.file.mimetype // set kiểu file là audio/mp3...
+            }
+        });
 
-        // Trả về cho client (kèm ID vừa tạo từ Firestore)
-        res.json({ id: docRef.id, ...newSong });
+        blobStream.on('error', (error) => {
+            console.error('Lỗi upload Storage:', error);
+            res.status(500).json({ error: error.message });
+        });
+
+        blobStream.on('finish', async () => {
+            // File đã lên Storage xong. Giờ lấy đường dẫn Public.
+
+            // Cách 1: Lấy Signed URL (có hạn dùng rất lâu, ví dụ 100 năm)
+            const [url] = await fileUpload.getSignedUrl({
+                action: 'read',
+                expires: '03-09-2100' // Hết hạn vào năm 2100 :D
+            });
+
+            // Tạo data để lưu vào Firestore
+            const newSong = {
+                name: req.file.originalname,
+                url: url, // Link từ Firebase Storage
+                fileName: fileName, // Lưu tên file để sau này xóa nếu cần
+                createdAt: new Date().toISOString()
+            };
+
+            // Lưu vào Firestore
+            const docRef = await db.collection('songs').add(newSong);
+
+            res.json({ id: docRef.id, ...newSong });
+        });
+
+        // Bắt đầu đẩy dữ liệu từ RAM lên Storage
+        blobStream.end(req.file.buffer);
 
     } catch (error) {
         console.error(error);
@@ -72,17 +91,13 @@ app.post('/upload', upload.single('musicFile'), async (req, res) => {
     }
 });
 
-// API 2: Lấy danh sách nhạc (Lấy từ Firestore)
 app.get('/songs', async (req, res) => {
     try {
         const snapshot = await db.collection('songs').orderBy('createdAt', 'desc').get();
-
-        // Biến đổi dữ liệu Firestore thành mảng
         const list = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         }));
-
         res.json(list);
     } catch (error) {
         console.error(error);
@@ -90,12 +105,12 @@ app.get('/songs', async (req, res) => {
     }
 });
 
-// Middleware xử lý lỗi (Giữ nguyên từ bước trước)
+// Log lỗi chi tiết
 app.use((err, req, res, next) => {
     console.error(JSON.stringify(err, null, 2));
     res.status(500).json({ error: 'Lỗi server', details: err.message });
 });
 
 app.listen(PORT, () => {
-    console.log(`Server Firestore đang chạy tại port ${PORT}`);
+    console.log(`Server Firebase Fullstack đang chạy tại port ${PORT}`);
 });
