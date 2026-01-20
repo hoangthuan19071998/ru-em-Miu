@@ -68,17 +68,15 @@ app.post('/upload', upload.single('musicFile'), async (req, res) => {
                 expires: '03-09-2100' // Hết hạn vào năm 2100 :D
             });
 
-            // Tạo data để lưu vào Firestore
             const newSong = {
-                name: req.file.originalname,
-                url: url, // Link từ Firebase Storage
-                fileName: fileName, // Lưu tên file để sau này xóa nếu cần
+                name: req.body.name || req.file.originalname, // Cho phép đặt tên custom nếu muốn
+                playlist: req.body.playlist || 'tat-ca',       // <--- LƯU PLAYLIST ID
+                url: url,
+                fileName: fileName,
                 createdAt: new Date().toISOString()
             };
 
-            // Lưu vào Firestore
             const docRef = await db.collection('songs').add(newSong);
-
             res.json({ id: docRef.id, ...newSong });
         });
 
@@ -99,6 +97,44 @@ app.get('/songs', async (req, res) => {
             ...doc.data()
         }));
         res.json(list);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API 3: Xóa bài hát
+app.delete('/songs/:id', async (req, res) => {
+    try {
+        const songId = req.params.id;
+
+        // 1. Lấy thông tin bài hát từ Firestore để biết tên file
+        const docRef = db.collection('songs').doc(songId);
+        const doc = await docRef.get();
+
+        if (!doc.exists) {
+            return res.status(404).json({ error: 'Không tìm thấy bài hát' });
+        }
+
+        const songData = doc.data();
+        const fileName = songData.fileName; // Tên file mình đã lưu lúc upload
+
+        // 2. Xóa file trên Firebase Storage (Nếu có tên file)
+        if (fileName) {
+            try {
+                await bucket.file(fileName).delete();
+                console.log(`Đã xóa file Storage: ${fileName}`);
+            } catch (err) {
+                console.warn("Lỗi xóa file Storage (có thể file không tồn tại):", err.message);
+                // Vẫn tiếp tục xóa trong DB dù lỗi file
+            }
+        }
+
+        // 3. Xóa dữ liệu trong Firestore
+        await docRef.delete();
+
+        res.json({ message: 'Đã xóa thành công', id: songId });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: error.message });

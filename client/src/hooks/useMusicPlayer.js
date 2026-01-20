@@ -1,7 +1,6 @@
 // src/hooks/useMusicPlayer.js
-import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
-
+import { deleteSongAPI, fetchSongsAPI, uploadSongAPI } from '../api';
 const useMusicPlayer = () => {
     const [songs, setSongs] = useState([]);
     const [currentSong, setCurrentSong] = useState(null);
@@ -27,7 +26,7 @@ const useMusicPlayer = () => {
     const fetchSongs = async () => {
         try {
             // Nhớ thay bằng link Render của bạn nếu đã deploy
-            const res = await axios.get('https://ru-em-miu.onrender.com/songs');
+            const res = await fetchSongsAPI();
             setSongs(res.data);
         } catch (error) {
             console.error("Lỗi lấy danh sách:", error);
@@ -44,24 +43,23 @@ const useMusicPlayer = () => {
         }
     }, [currentSong]);
 
-    const handleFileUpload = async (e) => {
+    // Sửa hàm upload để nhận thêm tham số playlistId
+    const handleFileUpload = async (e, playlistId) => { // <--- Thêm tham số này
         const file = e.target.files[0];
         if (!file) return;
 
         setIsUploading(true);
         const formData = new FormData();
         formData.append('musicFile', file);
+        formData.append('playlist', playlistId); // <--- Gửi kèm ID playlist lên server
 
         try {
-            // Thay link Render của bạn vào đây
-            const res = await axios.post('https://ru-em-miu.onrender.com/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            const res = await uploadSongAPI(formData);
             setSongs(prev => [...prev, res.data]);
             alert("Upload thành công!");
         } catch (error) {
             console.error(error);
-            alert("Upload thất bại! Kiểm tra lại file hoặc server.");
+            alert("Upload thất bại!");
         } finally {
             setIsUploading(false);
         }
@@ -158,6 +156,41 @@ const useMusicPlayer = () => {
         localStorage.setItem('my_favorites', JSON.stringify(newFavorites)); // Lưu vào trình duyệt
     };
 
+    // Thêm hàm xóa mới
+    const handleDeleteSong = async (songId) => {
+        // Hỏi xác nhận trước khi xóa
+        if (!window.confirm("Bạn có chắc muốn xóa bài hát này vĩnh viễn không?")) {
+            return;
+        }
+
+        try {
+            // Gọi API xóa
+            await deleteSongAPI(songId);
+
+            // Cập nhật lại danh sách songs (xóa bài vừa chọn ra khỏi mảng)
+            setSongs(prev => prev.filter(song => song.id !== songId));
+
+            // Cũng xóa khỏi danh sách yêu thích nếu có
+            setFavorites(prev => {
+                const newFavs = prev.filter(song => song.id !== songId);
+                localStorage.setItem('my_favorites', JSON.stringify(newFavs));
+                return newFavs;
+            });
+
+            // Nếu đang phát bài bị xóa thì dừng lại
+            if (currentSong?.id === songId) {
+                setIsPlaying(false);
+                setCurrentSong(null);
+            }
+
+            alert("Đã xóa bài hát!");
+
+        } catch (error) {
+            console.error("Lỗi xóa:", error);
+            alert("Không thể xóa bài hát này.");
+        }
+    };
+
     // Trả về mọi thứ cần thiết cho giao diện
     return {
         state: {
@@ -167,7 +200,7 @@ const useMusicPlayer = () => {
             setCurrentSong, setIsPlaying, setIsShuffle, setIsRepeat,
             handleFileUpload, handleNext, handlePrev, handlePlayPause,
             handlePlayFirst, handleShufflePlay, handleSeek,
-            handleTimeUpdate, handleLoadedMetadata, handleSongEnd, toggleFavorite
+            handleTimeUpdate, handleLoadedMetadata, handleSongEnd, toggleFavorite, handleDeleteSong
         },
         refs: {
             audioRef

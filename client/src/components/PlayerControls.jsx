@@ -1,6 +1,5 @@
 // src/components/PlayerControls.jsx
-import React from 'react';
-import { FaPlay, FaPause, FaStepForward, FaStepBackward, FaRandom, FaRedo } from 'react-icons/fa';
+import { FaPause, FaPlay, FaRandom, FaRedo, FaStepBackward, FaStepForward } from 'react-icons/fa';
 
 // Hàm định dạng thời gian: giây -> mm:ss
 const formatTime = (time) => {
@@ -25,7 +24,7 @@ const PlayerControls = ({
     toggleRepeat
 }) => {
     return (
-        <div className="mt-2 border-t border-gray-800 pt-4"> {/* Giảm margin top cũ đi một chút */}
+        <div className=""> {/* Giảm margin top cũ đi một chút */}
 
             {/* Tên bài hát */}
             <div className="mb-4 text-center">

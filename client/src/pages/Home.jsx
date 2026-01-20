@@ -1,68 +1,54 @@
 // src/pages/Home.jsx
-import { useState } from 'react';
-import { FaFire, FaHeart, FaList } from 'react-icons/fa';
-import SongList from '../components/SongList';
+import { FaMusic } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { playlists } from '../data/playlists';
+const Home = () => {
+    const navigate = useNavigate();
 
-const Home = ({ state, actions }) => {
-    // State cục bộ để biết đang xem tab nào: 'all' hoặc 'fav'
-    const [activeTab, setActiveTab] = useState('all');
-
-    // Logic lọc bài hát hiển thị
-    const displayedSongs = activeTab === 'fav' ? state.favorites : state.songs;
+    // Dữ liệu giả lập các Playlist (Bạn có thể thêm hình ảnh coverUrl vào đây)
+    const displayPlaylists = [
+        ...playlists
+    ];
 
     return (
-        <div className="h-full flex flex-col px-4 pt-2">
+        <div className="h-full px-4 pt-4 overflow-y-auto pb-20 scrollbar-hide">
 
-            {/* --- PHẦN MỚI: THANH CHỌN PLAYLIST (TABS) --- */}
-            <div className="flex gap-4 mb-4 overflow-x-auto pb-2 scrollbar-hide">
-                {/* Nút 1: Tất cả */}
-                <button
-                    onClick={() => setActiveTab('all')}
-                    className={`
-            flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all
-            ${activeTab === 'all' ? 'bg-white text-gray-900' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}
-          `}
-                >
-                    <FaList /> Tất cả
-                </button>
+            <h2 className="text-lg font-bold text-white mb-4">Danh sách phát</h2>
 
-                {/* Nút 2: Yêu thích */}
-                <button
-                    onClick={() => setActiveTab('fav')}
-                    className={`
-            flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all
-            ${activeTab === 'fav' ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/30' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}
-          `}
-                >
-                    <FaHeart /> Yêu thích ({state.favorites.length})
-                </button>
+            {/* GRID LAYOUT: 2 Cột trên Mobile */}
+            <div className="grid grid-cols-2 gap-4">
+                {displayPlaylists.map((playlist) => (
+                    <div
+                        key={playlist.id}
+                        onClick={() => navigate(`/playlist/${playlist.id}`)}
+                        className="group relative aspect-square rounded-2xl overflow-hidden cursor-pointer active:scale-95 transition-all duration-200 shadow-lg"
+                    >
+                        <div className={`w-full h-full bg-gradient-to-br ${playlist.color} relative`}>
+                            {playlist.coverUrl ? (
+                                // TRƯỜNG HỢP 1: CÓ ẢNH
+                                <img
+                                    src={playlist.coverUrl}
+                                    alt={playlist.name}
+                                    className="w-full h-full object-contain p-2  transition-transform duration-500 group-hover:scale-110"
+                                />
+                            ) : (
+                                // TRƯỜNG HỢP 2: KHÔNG CÓ ẢNH (Dùng màu Gradient cũ)
+                                <div className={`w-full h-full bg-gradient-to-br ${playlist.color || 'from-gray-700 to-gray-900'} flex items-center justify-center`}>
+                                    <FaMusic className="text-white/30 text-4xl group-hover:scale-110 transition-transform" />
+                                </div>
+                            )}
+                        </div>
 
-                {/* Nút giả lập khác (cho đẹp) */}
-                <button className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold bg-gray-800 text-gray-400 hover:bg-gray-700 opacity-50 cursor-not-allowed">
-                    <FaFire /> Thịnh hành
-                </button>
+
+                        {/* Lớp phủ đen mờ để chữ luôn dễ đọc */}
+                        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 pt-10">
+                            <p className="text-white font-bold text-sm truncate">{playlist.name}</p>
+                        </div>
+                    </div>
+                ))}
+
             </div>
 
-            {/* Danh sách nhạc (Đã lọc) */}
-            <SongList
-                songs={displayedSongs} // Truyền danh sách đã lọc vào đây
-                currentSong={state.currentSong}
-                isPlaying={state.isPlaying}
-                onSelect={actions.setCurrentSong}
-                onPlayFirst={() => {
-                    // Khi bấm Play All ở tab Fav, chỉ phát nhạc Fav
-                    if (displayedSongs.length > 0) {
-                        actions.setIsShuffle(false);
-                        actions.setCurrentSong(displayedSongs[0]);
-                        actions.setIsPlaying(true);
-                    }
-                }}
-                onShufflePlay={actions.handleShufflePlay}
-
-                // Truyền thêm props cho Tim
-                favorites={state.favorites}
-                onToggleFavorite={actions.toggleFavorite}
-            />
         </div>
     );
 };

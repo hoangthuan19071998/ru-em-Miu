@@ -1,7 +1,29 @@
 // src/components/SongList.jsx
-import { FaHeart, FaMusic, FaPlay, FaRandom, FaRegHeart, FaWaveSquare } from 'react-icons/fa';
+import { useRef } from 'react'; // Nhớ import useRef
+import { FaHeart, FaMusic, FaRegHeart, FaWaveSquare } from 'react-icons/fa';
 // Nhận thêm 2 props: onPlayFirst, onShufflePlay
-const SongList = ({ songs, currentSong, isPlaying, onSelect, onPlayFirst, onShufflePlay, favorites, onToggleFavorite }) => {
+const SongList = ({ songs, currentSong, isPlaying, onSelect, onPlayFirst, onShufflePlay, favorites, onToggleFavorite, onDelete }) => {
+
+  // Ref để lưu bộ đếm thời gian
+  const timerRef = useRef(null);
+
+  // Hàm bắt đầu ấn (Mouse Down / Touch Start)
+  const handlePressStart = (songId) => {
+    // Thiết lập bộ đếm: Sau 800ms sẽ kích hoạt xóa
+    timerRef.current = setTimeout(() => {
+      onDelete(songId);
+      timerRef.current = null; // Reset để không bị tính là click thường
+    }, 800);
+  };
+
+  // Hàm nhả chuột (Mouse Up / Touch End)
+  const handlePressEnd = () => {
+    // Nếu chưa đủ 800ms mà đã nhả ra -> Hủy lệnh xóa
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
   if (songs.length === 0) {
     return (
       <div className="text-center py-10 text-gray-500 animate-pulse">
@@ -13,26 +35,6 @@ const SongList = ({ songs, currentSong, isPlaying, onSelect, onPlayFirst, onShuf
 
   return (
     <div className="flex flex-col h-full">
-      {/* --- PHẦN MỚI: Cụm nút điều khiển đầu danh sách --- */}
-      <div className="flex gap-3 mb-4 shrink-0">
-        <button
-          onClick={onPlayFirst}
-          className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition transform active:scale-95 shadow-lg shadow-green-900/20"
-        >
-          <FaPlay size={12} /> Phát tất cả
-        </button>
-
-        <button
-          onClick={onShufflePlay}
-          className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white py-2.5 rounded-full font-bold text-sm flex items-center justify-center gap-2 border border-gray-700 transition transform active:scale-95"
-        >
-          <FaRandom size={12} /> Ngẫu nhiên
-        </button>
-      </div>
-
-      <div className="text-xs text-gray-500 font-semibold uppercase mb-2 px-1">
-        Danh sách ({songs.length} bài)
-      </div>
 
       {/* Danh sách bài hát (Cuộn) */}
       <div className="flex-1 overflow-y-auto pr-2 pb-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
@@ -45,6 +47,13 @@ const SongList = ({ songs, currentSong, isPlaying, onSelect, onPlayFirst, onShuf
             return (
               <div
                 key={song.id}
+                onMouseDown={() => handlePressStart(song.id)}
+                onMouseUp={handlePressEnd}
+                onMouseLeave={handlePressEnd} // Kéo chuột ra ngoài cũng hủy
+                onTouchStart={() => handlePressStart(song.id)} // Cho Mobile
+                onTouchEnd={handlePressEnd}
+                // Ngăn menu chuột phải hiện ra khi giữ lâu trên mobile
+                onContextMenu={(e) => e.preventDefault()}
                 className={`
                        group flex items-center justify-between p-3 rounded-xl transition-all duration-200
                        ${isActive
@@ -55,7 +64,11 @@ const SongList = ({ songs, currentSong, isPlaying, onSelect, onPlayFirst, onShuf
                 {/* Khu vực bấm để nghe nhạc */}
                 <div
                   className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer"
-                  onClick={() => onSelect(song)}
+                  onClick={() => {
+                    if (timerRef.current) {
+                      onSelect(song);
+                    }
+                  }}
                 >
                   <div className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold
                          ${isActive ? 'bg-green-500 text-white' : 'text-gray-500 group-hover:text-gray-300'}
