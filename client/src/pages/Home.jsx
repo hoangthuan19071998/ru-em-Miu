@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FaMusic, FaPlus, FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { deletePlaylistAPI, fetchPlaylistsAPI } from '../api';
-
+import tatCaImg from '../assets/covers/tat-ca.png';
 const Home = () => {
     const navigate = useNavigate();
     const [dbPlaylists, setDbPlaylists] = useState([]);
@@ -74,7 +74,7 @@ const Home = () => {
     const defaultPlaylist = {
         id: 'tat-ca',
         name: 'Tất Cả Bài Hát',
-        coverUrl: null,
+        coverUrl: tatCaImg,
         color: 'from-green-500 to-emerald-700'
     };
     const finalPlaylists = [defaultPlaylist, ...dbPlaylists];
