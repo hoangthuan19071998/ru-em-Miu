@@ -14,10 +14,6 @@ const useMusicPlayer = () => {
     const [duration, setDuration] = useState(0);
 
     const audioRef = useRef(null);
-    const [favorites, setFavorites] = useState(() => {
-        const saved = localStorage.getItem('my_favorites');
-        return saved ? JSON.parse(saved) : [];
-    });
     // Lấy danh sách nhạc khi load
     useEffect(() => {
         fetchSongs();
@@ -139,22 +135,7 @@ const useMusicPlayer = () => {
         }
     };
 
-    // 2. THÊM HÀM THẢ TIM / BỎ TIM
-    const toggleFavorite = (song) => {
-        let newFavorites;
-        const exists = favorites.find(s => s.id === song.id);
 
-        if (exists) {
-            // Nếu đã có -> Xóa khỏi danh sách
-            newFavorites = favorites.filter(s => s.id !== song.id);
-        } else {
-            // Nếu chưa có -> Thêm vào
-            newFavorites = [...favorites, song];
-        }
-
-        setFavorites(newFavorites);
-        localStorage.setItem('my_favorites', JSON.stringify(newFavorites)); // Lưu vào trình duyệt
-    };
 
     // Thêm hàm xóa mới
     const handleDeleteSong = async (songId) => {
@@ -170,12 +151,7 @@ const useMusicPlayer = () => {
             // Cập nhật lại danh sách songs (xóa bài vừa chọn ra khỏi mảng)
             setSongs(prev => prev.filter(song => song.id !== songId));
 
-            // Cũng xóa khỏi danh sách yêu thích nếu có
-            setFavorites(prev => {
-                const newFavs = prev.filter(song => song.id !== songId);
-                localStorage.setItem('my_favorites', JSON.stringify(newFavs));
-                return newFavs;
-            });
+
 
             // Nếu đang phát bài bị xóa thì dừng lại
             if (currentSong?.id === songId) {
@@ -194,13 +170,13 @@ const useMusicPlayer = () => {
     // Trả về mọi thứ cần thiết cho giao diện
     return {
         state: {
-            songs, currentSong, isPlaying, isShuffle, isRepeat, isUploading, currentTime, duration, favorites,
+            songs, currentSong, isPlaying, isShuffle, isRepeat, isUploading, currentTime, duration,
         },
         actions: {
             setCurrentSong, setIsPlaying, setIsShuffle, setIsRepeat,
             handleFileUpload, handleNext, handlePrev, handlePlayPause,
             handlePlayFirst, handleShufflePlay, handleSeek,
-            handleTimeUpdate, handleLoadedMetadata, handleSongEnd, toggleFavorite, handleDeleteSong
+            handleTimeUpdate, handleLoadedMetadata, handleSongEnd, handleDeleteSong
         },
         refs: {
             audioRef

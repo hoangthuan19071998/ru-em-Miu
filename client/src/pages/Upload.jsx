@@ -1,10 +1,8 @@
 // src/pages/Upload.jsx
-import { useState } from 'react';
 import { FaCloudUploadAlt, FaMusic, FaSpinner } from 'react-icons/fa';
-import { playlists } from '../data/playlists';
+
 const Upload = ({ state, actions }) => {
     const { isUploading } = state;
-    const [selectedPlaylist, setSelectedPlaylist] = useState(playlists[0].id);
 
     return (
         <div className="h-full flex flex-col items-center justify-center p-6 text-center">
@@ -22,19 +20,7 @@ const Upload = ({ state, actions }) => {
                     {isUploading ? 'Vui lòng không tắt trình duyệt' : 'Chọn playlist và file nhạc của bạn'}
                 </p>
 
-                {/* 1. MENU CHỌN PLAYLIST */}
-                <div className="mb-4 text-left">
-                    <label className="text-xs text-gray-400 font-bold ml-2">Chọn Playlist:</label>
-                    <select
-                        value={selectedPlaylist}
-                        onChange={(e) => setSelectedPlaylist(e.target.value)}
-                        className="w-full mt-1 bg-gray-900 border border-gray-700 text-white p-3 rounded-xl focus:outline-none focus:border-blue-500 transition-colors cursor-pointer appearance-none"
-                    >
-                        {playlists.map(pl => (
-                            <option key={pl.id} value={pl.id}>{pl.name}</option>
-                        ))}
-                    </select>
-                </div>
+
 
                 {/* --- 2. NÚT BẤM CÓ HOẠT ẢNH --- */}
                 <label className={`
@@ -63,7 +49,7 @@ const Upload = ({ state, actions }) => {
                         accept="audio/*"
                         className="hidden"
                         disabled={isUploading}
-                        onChange={(e) => actions.handleFileUpload(e, selectedPlaylist)}
+                        onChange={(e) => actions.handleFileUpload(e, 'tat-ca')}
                     />
                 </label>
 

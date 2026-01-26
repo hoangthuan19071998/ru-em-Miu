@@ -18,3 +18,9 @@ export const uploadSongAPI = (formData) => API.post('/upload', formData, {
 
 // Xóa bài hát
 export const deleteSongAPI = (id) => API.delete(`/songs/${id}`);
+
+export const fetchPlaylistsAPI = () => API.get('/playlists');
+export const createPlaylistAPI = (data) => API.post('/playlists', data);
+export const addSongsToPlaylistAPI = (data) => API.put('/songs/add-to-playlist', data);
+export const deleteSongsAPI = (ids) => API.post('/songs/delete-bulk', { ids }); // Bạn cần làm thêm API xóa nhiều bài bên server nếu muốn
+export const deletePlaylistAPI = (id) => API.delete(`/playlists/${id}`);
